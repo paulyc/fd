@@ -123,17 +123,27 @@ fd -e flac -x ffmpeg -i {} -c:a libopus {.}.opus
 fd -x wc -l \; -e rs
 ```
 
+The number of threads used for command execution can be set with the `--threads`/`-j` option.
+
 ## Installation
 
 ### On Ubuntu
 *... and other Debian-based Linux distributions.*
 
-Download the latest `.deb` package from the [release page](https://github.com/sharkdp/fd/releases) and install it via:
-``` bash
-sudo dpkg -i fd_7.3.0_amd64.deb  # adapt version number and architecture
+If you run Ubuntu 19.04 (Disco Dingo) or newer, you can install the
+[officially maintained package](https://packages.ubuntu.com/disco/fd-find):
 ```
+sudo apt install fd-find
+```
+Note that the binary is called `fdfind` as the binary name `fd` is already used by another package.
+It is recommended that you add an `alias fd=fdfind` to your shells initialization file, in order to
+use `fd` in the same way as in this documentation.
 
-Note: `fd` will be officially available in Ubuntu Disco Dingo (19.04).
+If you use an older version of Ubuntu, you can download the latest `.deb` package from the
+[release page](https://github.com/sharkdp/fd/releases) and install it via:
+``` bash
+sudo dpkg -i fd_7.4.0_amd64.deb  # adapt version number and architecture
+```
 
 ### On Debian
 
@@ -157,6 +167,14 @@ For older versions, you can use this [Fedora copr](https://copr.fedorainfracloud
 ``` bash
 dnf copr enable keefle/fd
 dnf install fd
+```
+
+### On Alpine Linux
+
+You can install [the fd package](https://pkgs.alpinelinux.org/packages?name=fd)
+from the official sources, provided you have the appropriate repository enabled:
+```
+apk add fd
 ```
 
 ### On Arch Linux
@@ -280,6 +298,7 @@ FLAGS:
         --no-ignore-vcs     Do not respect .gitignore files
     -s, --case-sensitive    Case-sensitive search (default: smart case)
     -i, --ignore-case       Case-insensitive search (default: smart case)
+    -g, --glob              Glob-based search (default: regular expression)
     -F, --fixed-strings     Treat the pattern as a literal string
     -a, --absolute-path     Show absolute instead of relative paths
     -L, --follow            Follow symbolic links
@@ -302,7 +321,7 @@ OPTIONS:
         --changed-before <date|dur>    Filter by file modification time (older than)
 
 ARGS:
-    <pattern>    the search pattern, a regular expression (optional)
+    <pattern>    the search pattern: a regular expression unless '--glob' is used (optional)
     <path>...    the root directory for the filesystem search (optional)
 ```
 
@@ -446,6 +465,28 @@ If we want to run a command on all search results, we can pipe the output to `xa
 ```
 Here, the `-0` option tells *fd* to separate search results by the NULL character (instead of
 newlines). In the same way, the `-0` option of `xargs` tells it to read the input in this way.
+
+### Deleting files
+
+You can use `fd` to remove all files and directories that are matched by your search pattern.
+If you only want to remove files, you can use the `--exec-batch`/`-X` option to call `rm`. For
+example, to recursively remove all `.DS_Store` files, run:
+``` bash
+> fd -H '^\.DS_Store$' -tf -X rm
+```
+If you are unsure, always call `fd` without `-X rm` first. Alternatively, use `rm`s "interactive"
+option:
+``` bash
+> fd -H '^\.DS_Store$' -tf -X rm -i
+```
+
+If you also want to remove a certain class of directories, you can use the same technique. You will
+have to use `rm`s `--recursive`/`-r` flag to remove directories.
+
+Note: there are scenarios where using `fd … -X rm -r` can cause race conditions: if you have a
+path like `…/foo/bar/foo/…` and want to remove all directories named `foo`, you can end up in a
+situation where the outer `foo` directory is removed first, leading to (harmless) *"'foo/bar/foo':
+No such file or directory"* errors in the `rm` call.
 
 ### Troubleshooting
 
